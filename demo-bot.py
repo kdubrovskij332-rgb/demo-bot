@@ -6,70 +6,107 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
-# Токен твоего бота (можно вставить сюда или настроить через переменные окружения)
+# Токен твоего бота
 TOKEN = "9074013397:AAGT4oqK1RwH2_xw9IP5I4sUMacLSCMqtO8"
-ADMIN_USERNAME = "GoodBus1nesBot"  # Юзернейм для связи с менеджером
+ADMIN_USERNAME = "GoodBus1nesBot"  # Юзернейм для связи и заказа услуг
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Главное меню бота
+# Главное меню (профессиональное оформление)
 def get_main_menu():
     b = InlineKeyboardBuilder()
-    b.button(text="📋 О наших услугах", callback_data="services")
-    b.button(text="💼 Портфолио работ", callback_data="portfolio")
-    b.button(text="📞 Связаться с менеджером", url=f"https://t.me/{ADMIN_USERNAME}")
+    b.button(text="🌐 Сетевые услуги и IT", callback_data="services")
+    b.button(text="💼 Портфолио проектов", callback_data="portfolio")
+    b.button(text="💳 Оплата и тарифы", callback_data="payment")
+    b.button(text="📞 Связаться со специалистом", url=f"https://t.me/{ADMIN_USERNAME}")
+    b.adjust(1)
+    return b.as_markup()
+
+# Кнопка «Назад»
+def get_back_menu():
+    b = InlineKeyboardBuilder()
+    b.button(text="⬅️ Вернуться в главное меню", callback_data="back_home")
     b.adjust(1)
     return b.as_markup()
 
 @dp.message(Command("start"))
 async def cmd_start(msg: types.Message):
-    await msg.answer(
-        "👋 Здравствуйте! Добро пожаловать в нашу компанию.\n\n"
-        "Этот бот создан для автоматизации вашего бизнеса. Выберите интересующий раздел:",
-        reply_markup=get_main_menu()
+    welcome_text = (
+        "👋 **Добро пожаловать!**\n\n"
+        "Я — ваш персональный IT-помощник по профессиональному администрированию, "
+        "построению и настройке сетевой инфраструктуры любой сложности.\n\n"
+        "🛠 **Что мы делаем:**\n"
+        "• Проектирование и монтаж локальных сетей (LAN/WAN)\n"
+        "• Настройка маршрутизаторов, коммутаторов и корпоративного Wi-Fi\n"
+        "• Администрирование систем и обеспечение информационной безопасности\n\n"
+        "👇 *Выберите интересующий раздел в меню ниже:*"
     )
+    await msg.answer(welcome_text, reply_markup=get_main_menu(), parse_mode="Markdown")
 
 @dp.callback_query(F.data == "services")
 async def show_services(c: types.CallbackQuery):
-    b = InlineKeyboardBuilder()
-    b.button(text="⬅️ Назад в меню", callback_data="back_home")
-    b.adjust(1)
-    await c.message.edit_text(
-        "📋 **Наши основные услуги:**\n\n"
-        "1. Разработка Telegram-ботов любой сложности.\n"
-        "2. Интеграция с CRM и платежными системами.\n"
-        "3. Техническая поддержка 24/7.",
-        reply_markup=b.as_markup()
+    text = (
+        "🌐 **Наши ключевые сетевые решения:**\n\n"
+        "1️⃣ **Локальные и глобальные сети (LAN/WAN)**\n"
+        "   • Проектирование, монтаж кабельных трасс и кроссировка (RJ45)\n"
+        "   • Объединение офисов в единую защищенную сеть (VPN)\n\n"
+        "2️⃣ **Настройка сетевого оборудования**\n"
+        "   • Конфигурация маршрутизаторов и коммутаторов (MikroTik, Cisco, TP-Link)\n"
+        "   • Настройка VLAN, TRUNK-портов и маршрутизации трафика\n\n"
+        "3️⃣ **Системное администрирование**\n"
+        "   • Развертывание и поддержка Active Directory, виртуальных машин (VirtualBox)\n"
+        "   • Организация резервного копирования и мониторинга 24/7"
     )
+    await c.message.edit_text(text, reply_markup=get_back_menu(), parse_mode="Markdown")
     await c.answer()
 
 @dp.callback_query(F.data == "portfolio")
 async def show_portfolio(c: types.CallbackQuery):
-    b = InlineKeyboardBuilder()
-    b.button(text="⬅️ Назад в меню", callback_data="back_home")
-    b.adjust(1)
-    await c.message.edit_text(
-        "💼 **Портфолио:**\n\n"
-        "• Бот-магазин одежды\n"
-        "• Бот для записи в барбершоп\n"
-        "• Интерактивный бот-знакомств",
-        reply_markup=b.as_markup()
+    text = (
+        "💼 **Примеры успешных проектов:**\n\n"
+        "🏢 **Офис под ключ (150 рабочих мест)**\n"
+        "   • Полноценный монтаж структурированной кабельной системы (СКС)\n"
+        "   • Настройка бесшовного корпоративного Wi-Fi и сегментация сети через VLAN\n\n"
+        "🏭 **Складской комплекс**\n"
+        "   • Организация стабильного сетевого покрытия по всей территории\n"
+        "   • Интеграция систем видеонаблюдения и контроля доступа\n\n"
+        "🏠 **Частные корпоративные сети**\n"
+        "   • Защищенные шлюзы, родительский контроль и удаленный доступ"
     )
+    await c.message.edit_text(text, reply_markup=get_back_menu(), parse_mode="Markdown")
+    await c.answer()
+
+@dp.callback_query(F.data == "payment")
+async def show_payment(c: types.CallbackQuery):
+    text = (
+        "💳 **Способы оплаты и порядок работы:**\n\n"
+        "Мы работаем как с физическими, так и с юридическими лицами. Доступные варианты расчета:\n\n"
+        "• 🟢 **Банковская карта** (Перевод на карту / реквизиты)\n"
+        "• 📄 **Безналичный расчет** (Оплата по выставленному счету для компаний)\n"
+        "•  USDT / Криптовалюта (по предварительному согласованию)\n\n"
+        "📌 *Для заказа выезда специалиста или консультации нажмите кнопку ниже.*"
+    )
+    
+    # Кнопки для раздела оплаты: назад + связь
+    b = InlineKeyboardBuilder()
+    b.button(text="📞 Связаться для уточнения реквизитов", url=f"https://t.me/{ADMIN_USERNAME}")
+    b.button(text="⬅️ Вернуться в главное меню", callback_data="back_home")
+    b.adjust(1)
+    
+    await c.message.edit_text(text, reply_markup=b.as_markup(), parse_mode="Markdown")
     await c.answer()
 
 @dp.callback_query(F.data == "back_home")
 async def back_home(c: types.CallbackQuery):
-    await c.message.edit_text(
-        "Главное меню. Выберите интересующий раздел:",
-        reply_markup=get_main_menu()
-    )
+    text = "🏠 **Главное меню.** Выберите интересующий раздел:"
+    await c.message.edit_text(text, reply_markup=get_main_menu(), parse_mode="Markdown")
     await c.answer()
 
-# Настройка простейшего веб-сервера, чтобы Render был доволен открытым портом
+# Веб-сервер для стабильной работы на Render (исключает ошибку портов)
 async def handle(request):
-    return web.Response(text="Commercial Bot is running!")
+    return web.Response(text="Network Service Bot is running!")
 
 async def web_server():
     app = web.Application()
@@ -77,16 +114,12 @@ async def web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # Render передает порт через переменные окружения, по умолчанию берем 10000
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
 async def main():
-    # Запускаем веб-сервер для хостинга параллельно с ботом
     await web_server()
-    
-    # Очищаем старые апдейты и запускаем бота
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
