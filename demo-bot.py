@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import sqlite3
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -8,13 +9,47 @@ from aiohttp import web
 
 # Токен твоего бота
 TOKEN = "9074013397:AAGT4oqK1RwH2_xw9IP5I4sUMacLSCMqtO8"
-ADMIN_USERNAME = "GoodBus1nesBot"  # Юзернейм для связи и заказа услуг
+ADMIN_USERNAME = "GoodBus1nesBot"  # Юзернейм для связи
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Главное меню (профессиональное оформление)
+# === РАБОТА С БАЗОЙ ДАННЫХ (SQLite) ===
+def init_db():
+    conn = sqlite3.connect("bot_database.db")
+    cursor = conn.cursor()
+    # Создаем таблицу клиентов, если она еще не создана
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER UNIQUE,
+            username TEXT,
+            full_name TEXT,
+            joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_client(telegram_id, username, full_name):
+    conn = sqlite3.connect("bot_database.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT OR IGNORE INTO clients (telegram_id, username, full_name) VALUES (?, ?, ?)",
+            (telegram_id, username, full_name)
+        )
+        conn.commit()
+    except Exception as e:
+        logging.error(f"Ошибка сохранения в БД: {e}")
+    finally:
+        conn.close()
+
+# Инициализируем базу данных при запуске
+init_db()
+
+# === КЛАВИАТУРЫ ===
 def get_main_menu():
     b = InlineKeyboardBuilder()
     b.button(text="🌐 Сетевые услуги и IT", callback_data="services")
@@ -24,23 +59,29 @@ def get_main_menu():
     b.adjust(1)
     return b.as_markup()
 
-# Кнопка «Назад»
 def get_back_menu():
     b = InlineKeyboardBuilder()
     b.button(text="⬅️ Вернуться в главное меню", callback_data="back_home")
     b.adjust(1)
     return b.as_markup()
 
+# === ХЕНДЛЕРЫ (ОБРАБОТЧИКИ) ===
 @dp.message(Command("start"))
 async def cmd_start(msg: types.Message):
+    # Сохраняем пользователя в базу данных автоматически
+    save_client(
+        telegram_id=msg.from_user.id,
+        username=msg.from_user.username or "No username",
+        full_name=msg.from_user.full_name or "No name"
+    )
+    
     welcome_text = (
-        "👋 **Добро пожаловать!**\n\n"
-        "Я — ваш персональный IT-помощник по профессиональному администрированию, "
-        "построению и настройке сетевой инфраструктуры любой сложности.\n\n"
-        "🛠 **Что мы делаем:**\n"
-        "• Проектирование и монтаж локальных сетей (LAN/WAN)\n"
-        "• Настройка маршрутизаторов, коммутаторов и корпоративного Wi-Fi\n"
-        "• Администрирование систем и обеспечение информационной безопасности\n\n"
+        "👋 **Добро пожаловать в профессиональный IT-сервис!**\n\n"
+        "Мы специализируемся на проектировании, настройке и администрировании сетевой инфраструктуры любой сложности.\n\n"
+        "🛠 **Наши ключевые направления:**\n"
+        "• Локальные и глобальные сети (LAN/WAN, VPN)\n"
+        "• Конфигурация оборудования (MikroTik, Cisco, TP-Link)\n"
+        "• Системное администрирование и безопасность\n\n"
         "👇 *Выберите интересующий раздел в меню ниже:*"
     )
     await msg.answer(welcome_text, reply_markup=get_main_menu(), parse_mode="Markdown")
@@ -51,12 +92,12 @@ async def show_services(c: types.CallbackQuery):
         "🌐 **Наши ключевые сетевые решения:**\n\n"
         "1️⃣ **Локальные и глобальные сети (LAN/WAN)**\n"
         "   • Проектирование, монтаж кабельных трасс и кроссировка (RJ45)\n"
-        "   • Объединение офисов в единую защищенную сеть (VPN)\n\n"
+        "   • Объединение удаленных офисов в защищенную сеть (VPN)\n\n"
         "2️⃣ **Настройка сетевого оборудования**\n"
-        "   • Конфигурация маршрутизаторов и коммутаторов (MikroTik, Cisco, TP-Link)\n"
+        "   • Конфигурация маршрутизаторов и коммутаторов (MikroTik, Cisco)\n"
         "   • Настройка VLAN, TRUNK-портов и маршрутизации трафика\n\n"
         "3️⃣ **Системное администрирование**\n"
-        "   • Развертывание и поддержка Active Directory, виртуальных машин (VirtualBox)\n"
+        "   • Развертывание и поддержка Active Directory, виртуальных сред\n"
         "   • Организация резервного копирования и мониторинга 24/7"
     )
     await c.message.edit_text(text, reply_markup=get_back_menu(), parse_mode="Markdown")
@@ -66,14 +107,14 @@ async def show_services(c: types.CallbackQuery):
 async def show_portfolio(c: types.CallbackQuery):
     text = (
         "💼 **Примеры успешных проектов:**\n\n"
-        "🏢 **Офис под ключ (150 рабочих мест)**\n"
-        "   • Полноценный монтаж структурированной кабельной системы (СКС)\n"
-        "   • Настройка бесшовного корпоративного Wi-Fi и сегментация сети через VLAN\n\n"
-        "🏭 **Складской комплекс**\n"
-        "   • Организация стабильного сетевого покрытия по всей территории\n"
+        "🏢 **Корпоративный офис (150+ рабочих мест)**\n"
+        "   • Полноценный монтаж СКС и кроссировка коммутационных шкафов\n"
+        "   • Настройка бесшовного корпоративного Wi-Fi и сегментация через VLAN\n\n"
+        "🏭 **Складской логистический комплекс**\n"
+        "   • Организация отказоустойчивой сети на базе оборудования MikroTik\n"
         "   • Интеграция систем видеонаблюдения и контроля доступа\n\n"
-        "🏠 **Частные корпоративные сети**\n"
-        "   • Защищенные шлюзы, родительский контроль и удаленный доступ"
+        "🏠 **Частные защищенные сети**\n"
+        "   • Высокоскоростные роутеры, безопасность и удаленный доступ"
     )
     await c.message.edit_text(text, reply_markup=get_back_menu(), parse_mode="Markdown")
     await c.answer()
@@ -82,46 +123,7 @@ async def show_portfolio(c: types.CallbackQuery):
 async def show_payment(c: types.CallbackQuery):
     text = (
         "💳 **Способы оплаты и порядок работы:**\n\n"
-        "Мы работаем как с физическими, так и с юридическими лицами. Доступные варианты расчета:\n\n"
-        "• 🟢 **Банковская карта** (Перевод на карту / реквизиты)\n"
-        "• 📄 **Безналичный расчет** (Оплата по выставленному счету для компаний)\n"
-        "•  USDT / Криптовалюта (по предварительному согласованию)\n\n"
-        "📌 *Для заказа выезда специалиста или консультации нажмите кнопку ниже.*"
-    )
-    
-    # Кнопки для раздела оплаты: назад + связь
-    b = InlineKeyboardBuilder()
-    b.button(text="📞 Связаться для уточнения реквизитов", url=f"https://t.me/{ADMIN_USERNAME}")
-    b.button(text="⬅️ Вернуться в главное меню", callback_data="back_home")
-    b.adjust(1)
-    
-    await c.message.edit_text(text, reply_markup=b.as_markup(), parse_mode="Markdown")
-    await c.answer()
-
-@dp.callback_query(F.data == "back_home")
-async def back_home(c: types.CallbackQuery):
-    text = "🏠 **Главное меню.** Выберите интересующий раздел:"
-    await c.message.edit_text(text, reply_markup=get_main_menu(), parse_mode="Markdown")
-    await c.answer()
-
-# Веб-сервер для стабильной работы на Render (исключает ошибку портов)
-async def handle(request):
-    return web.Response(text="Network Service Bot is running!")
-
-async def web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    port = int(os.environ.get("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
-async def main():
-    await web_server()
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        "Мы работаем официально с физическими и юридическими лицами:\n\n"
+        "• 🟢 **Банковская карта** (Перевод по реквизитам)\n"
+        "• 📄 **Безналичный расчет** (Оплата по счету для компаний)\n"
+        "• 💎 **Криптовалюта** (USDT — по согласова
