@@ -8,8 +8,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
 # Сюда вставляется токен, который клиент получит от своего BotFather
-TOKEN = "ТВОЙ_ТОКЕН_ПРОБНОГО_БОТА"
-ADMIN_USERNAME = "ТвойЮзернейм"  # Куда клиент будет писать по вопросам заказа
+TOKEN = "9074013397:AAGT4oqK1RwH2_xw9IP5I4sUMacLSCMqtO8"
+ADMIN_USERNAME = "GoodBus1nesBot"  # Куда клиент будет писать по вопросам заказа
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
